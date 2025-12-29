@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抹茶甜點介紹網站 - Matcha Sweets</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ----------------- 變數與基礎 ----------------- */
+        :root {
+            --color-matcha-dark: #356b3a;
+            --color-matcha-mid: #4e8557;
+            --color-matcha-light: #6baa75;
+            --color-bg-primary: #fafaf5;
+            --color-bg-secondary: #d8e8d2;
+            --color-text-dark: #333;
+            --shadow-main: 0 4px 12px rgba(0,0,0,0.15);
+            --shadow-hover: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        body {
+            margin: 0;
+            font-family: "Poppins", sans-serif;
+            scroll-behavior: smooth;
+            background: var(--color-bg-primary);
+            color: var(--color-text-dark);
+            overflow-x: hidden;
+        }
+
+        /* ----------------- 通用元件 ----------------- */
+        .section { padding: 100px 12%; }
+        .section-title { text-align: center; font-size: 2.6rem; color: var(--color-matcha-dark); margin-bottom: 50px; }
+        .category-title { font-size: 2rem; text-align: center; margin: 60px 0 25px; color: var(--color-matcha-mid); }
+
+        .fade { opacity: 0; transform: translateY(40px); transition: all 1s ease; }
+        .fade.show { opacity: 1; transform: translateY(0); }
+
+        .base-card {
+            background: white;
+            border-radius: 18px;
+            box-shadow: var(--shadow-main);
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+        .base-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-hover); }
+
+        .card-img { width: 100%; object-fit: cover; display: block; transition: transform 0.6s ease; }
+        .base-card:hover .card-img { transform: scale(1.05); }
+
+        /* ----------------- 導覽列 (新增漢堡選單樣式) ----------------- */
+        .navbar {
+            position: fixed; top: 0; width: 100%; padding: 18px 40px;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(6px);
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 999; box-sizing: border-box;
+        }
+        .nav-links { list-style: none; display: flex; gap: 30px; margin: 0; transition: 0.3s ease; }
+        .nav-links a { text-decoration: none; color: var(--color-matcha-dark); font-weight: 600; }
+
+        /* 漢堡按鈕 - 預設隱藏 */
+        .burger { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
+        .burger div { width: 25px; height: 3px; background-color: var(--color-matcha-dark); transition: 0.3s; }
+
+        /* ----------------- Hero 輪播 ----------------- */
+        .slider { width: 100%; height: 100vh; position: relative; overflow: hidden; }
+        .slider .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1.3s ease; }
+        .slider .slide img { width: 100%; height: 100%; object-fit: cover; }
+        .slider .slide.active { opacity: 1; }
+        .hero-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: white; font-size: 3rem; text-shadow: 0 0 18px rgba(0,0,0,0.6);
+            font-weight: 700; text-align: center; opacity: 0; transition: opacity 1.8s ease; width: 90%;
+            z-index: 10;
+        }
+        .slider.show-text .hero-text { opacity: 1; }
+
+        /* ----------------- 佈局容器 ----------------- */
+        .grid-container { display: flex; flex-wrap: wrap; gap: 25px; justify-content: center; }
+        
+        .popular-card { width: 420px; text-align: center; padding-bottom: 20px; }
+        .popular-card img { height: 320px; }
+        .sweet-card { width: 300px; text-align: center; padding-bottom: 20px; }
+        .sweet-card img { height: 230px; }
+        .recipe-card { width: 100%; max-width: 800px; cursor: pointer; padding: 25px; margin: 0 auto 30px; box-sizing: border-box; }
+        .recipe-img-top { height: 460px; border-radius: 15px; margin-bottom: 15px; }
+
+        .brand-card {
+            width: 300px; min-height: 200px; padding: 30px; cursor: pointer;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        .brand-card h3 { color: var(--color-matcha-dark); position: relative; padding-bottom: 15px; }
+        .brand-card h3::after {
+            content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 40px; height: 3px; background: var(--color-matcha-light);
+        }
+
+        /* ----------------- 彈出視窗 ----------------- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; justify-content: center;
+            align-items: center; z-index: 2000; backdrop-filter: blur(8px);
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white; width: 90%; max-width: 800px; max-height: 85vh;
+            border-radius: 20px; padding: 40px; overflow-y: auto; position: relative;
+            transform: scale(0.8); opacity: 0; transition: all 0.4s ease;
+        }
+        .modal.active .modal-content { transform: scale(1); opacity: 1; }
+        .close-modal { position: absolute; top: 20px; right: 20px; font-size: 30px; cursor: pointer; color: var(--color-matcha-dark); }
+
+        /* ----------------- 頁尾與其他 ----------------- */
+        footer { padding: 40px 12%; border-top: 1px solid #e0e0e0; color: #888; background: #fff; }
+        #topBtn {
+            position: fixed; bottom: 40px; right: 40px; width: 55px; height: 55px;
+            background: var(--color-matcha-light); color: white; border-radius: 50%;
+            display: none; justify-content: center; align-items: center; font-size: 24px;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000;
+        }
+
+        /* ----------------- 手機版自適應優化 (RWD) ----------------- */
+        @media (max-width: 992px) {
+            .section { padding: 80px 5%; }
+            .popular-card { width: 100%; }
+            .recipe-img-top { height: 300px; }
+        }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 15px 25px; }
+            .burger { display: flex; } /* 顯示漢堡按鈕 */
+            
+            /* 導覽列轉為側邊或下拉選單 */
+            .nav-links {
+                position: absolute; right: 0; top: 65px; height: 100vh;
+                background: white; flex-direction: column; align-items: center;
+                width: 0%; overflow: hidden; gap: 40px; padding-top: 50px;
+                box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            }
+            .nav-links.nav-active { width: 60%; } /* 開啟選單寬度 */
+
+            .hero-text { font-size: 1.8rem; }
+            .section-title { font-size: 2rem; }
+            .category-title { font-size: 1.6rem; }
+
+            .sweet-card, .brand-card { width: 100%; }
+            .modal-content { padding: 25px; width: 95%; }
+            
+            /* 漢堡動畫 */
+            .toggle .line1 { transform: rotate(-45deg) translate(-5px, 6px); }
+            .toggle .line2 { opacity: 0; }
+            .toggle .line3 { transform: rotate(45deg) translate(-5px, -6px); }
+        }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <div class="logo" style="font-weight:700; font-size:1.5rem; color:var(--color-matcha-dark);">Matcha Sweets</div>
+    <ul class="nav-links">
+        <li><a href="#home">首頁</a></li>
+        <li><a href="#desserts">甜點介紹</a></li>
+        <li><a href="#recipes">食譜</a></li>
+        <li><a href="#brands">品牌推薦</a></li>
+    </ul>
+    <div class="burger" id="burger">
+        <div class="line1"></div>
+        <div class="line2"></div>
+        <div class="line3"></div>
+    </div>
+</nav>
+
+<section id="home">
+    <div class="slider" id="heroSlider">
+        <div class="slide active"><img src="抹茶拿鐵.png" class="card-img"></div>
+        <div class="slide"><img src="抹茶霜淇淋.png" class="card-img"></div>
+        <div class="slide"><img src="抹茶戚風蛋糕.png" class="card-img"></div>
+        <div class="slide"><img src="抹茶布朗尼.png" class="card-img"></div>
+        <div class="hero-text">探索最療癒的抹茶甜點世界</div>
+    </div>
+</section>
+
+<section class="section fade">
+    <h2 class="section-title">熱門甜點推薦</h2>
+    <div class="grid-container">
+        <div class="base-card popular-card">
+            <img src="抹茶戚風蛋糕2.png" class="card-img">
+            <h3>抹茶戚風</h3>
+            <p>蓬鬆柔軟、香氣清新。</p>
+        </div>
+        <div class="base-card popular-card">
+            <img src="抹茶千層蛋糕.png" class="card-img">
+            <h3>抹茶千層</h3>
+            <p>層層堆疊的抹茶魅力。</p>
+        </div>
+        <div class="base-card popular-card">
+            <img src="抹茶生乳捲.png" class="card-img">
+            <h3>抹茶生乳捲</h3>
+            <p>奶香濃郁與抹茶完美融合。</p>
+        </div>
+    </div>
+</section>
+
+<section id="desserts" class="section fade">
+    <h2 class="section-title">抹茶甜點介紹</h2>
+    
+    <h3 class="category-title">蛋糕&餅乾</h3>
+    <div class="grid-container">
+        <div class="base-card sweet-card">
+            <img src="抹茶戚風蛋糕2.png" class="card-img">
+            <h3>抹茶戚風</h3>
+            <p>輕盈蓬鬆、入口即化。</p>
+        </div>
+        <div class="base-card sweet-card">
+            <img src="抹茶生乳捲.png" class="card-img">
+            <h3>抹茶生乳捲</h3>
+            <p>濃郁奶香搭配抹茶香氣。</p>
+        </div>
+        <div class="base-card sweet-card">
+            <img src="抹茶曲奇餅乾.png" class="card-img">
+            <h3>抹茶曲奇</h3>
+            <p>酥脆奶香與抹茶苦味完美融合。</p>
+        </div>
+        <div class="base-card sweet-card">
+            <img src="抹茶夾心餅乾.png" class="card-img">
+            <h3>抹茶夾心餅乾</h3>
+            <p>酥香外層＋濃郁內餡。</p>
+        </div>
+    </div>
+
+    <h3 class="category-title">飲品&冰品</h3>
+    <div class="grid-container">
+        <div class="base-card sweet-card">
+            <img src="抹茶拿鐵2.png" class="card-img">
+            <h3>抹茶拿鐵</h3>
+            <p>滑順奶香＋經典抹茶。</p>
+        </div>
+        <div class="base-card sweet-card">
+            <img src="抹茶冰沙.png" class="card-img">
+            <h3>抹茶冰沙</h3>
+            <p>冰涼消暑、夏季首選。</p>
+        </div>
+        <div class="base-card sweet-card">
+            <img src="抹茶冰淇淋.png" class="card-img">
+            <h3>抹茶冰淇淋</h3>
+            <p>濃郁香氣冒出來。</p>
+        </div>
+        <div class="base-card sweet-card">
+            <img src="抹茶聖代.png" class="card-img">
+            <h3>抹茶聖代</h3>
+            <p>多重口感的抹茶系夏日冰品。</p>
+        </div>
+    </div>
+</section>
+
+<section id="recipes" class="section fade">
+    <h2 class="section-title">食譜分享</h2>
+
+    <div class="base-card recipe-card fade" data-type="recipe">
+        <img src="抹茶拿鐵2.png" class="card-img recipe-img-top">
+        <h2 class="recipe-title">抹茶拿鐵</h2>
+        <div class="hidden-detail" style="display:none;">
+            <h3>食材</h3>
+            <ul>
+                <li>牛奶 150cc（替換成植物奶、豆漿也可以）</li>
+                <li>無糖抹茶粉 1 茶匙</li>
+                <li>水 1 湯匙</li>
+                <li>蜂蜜 1 茶匙</li>
+                <li>香草糖漿 0.5 茶匙</li>
+                <li>冰塊 適量</li>
+            </ul>
+            <h3>抹茶拿鐵所需器材</h3>
+            <ul>
+                <li>奶泡器（若沒有也可以使用湯匙、有蓋的容器）</li>
+            </ul>
+            <h3>詳細步驟</h3>
+            <ul>
+                <li>1. 先用水將抹茶粉溶解，直到沒有結塊或沉澱。</li>
+                <li>2. 再將牛奶、香草糖漿、蜂蜜倒入抹茶液中，以奶泡器或湯匙充分攪拌混和。</li>
+                <li>3. 最後加入適量冰塊，就完成啦！</li>
+            </ul>
+        </div>
+        <p style="color:var(--color-matcha-mid); text-align: center;">點擊展開詳細食譜...</p>
+    </div>
+
+    <div class="base-card recipe-card fade" data-type="recipe">
+        <img src="抹茶冰淇淋.png" class="card-img recipe-img-top">
+        <h2 class="recipe-title">抹茶冰淇淋</h2>
+        <div class="hidden-detail" style="display:none;">
+            <h3>食材</h3>
+            <ul>
+                <li>鮮奶油 200ml</li>
+                <li>牛奶 150ml</li>
+                <li>抹茶粉 12g</li>
+                <li>砂糖 40g</li>
+            </ul>
+            <h3>詳細步驟</h3>
+            <ul>
+                <li>1. 將鮮奶油、牛奶、抹茶粉與砂糖混合。</li>
+                <li>2. 用攪拌器攪拌均勻後放入冷凍。</li>
+                <li>3. 關鍵：每 30 分鐘取出攪拌一次，持續 4 次，口感會更綿密。</li>
+            </ul>
+        </div>
+        <p style="color:var(--color-matcha-mid); text-align: center;">點擊展開詳細食譜...</p>
+    </div>
+
+    <div class="base-card recipe-card fade" data-type="recipe">
+        <img src="抹茶布朗尼2.png" class="card-img recipe-img-top">
+        <h2 class="recipe-title">抹茶布朗尼</h2>
+        <div class="hidden-detail" style="display:none;">
+            <h3>食材</h3>
+            <ul>
+                <li>白巧克力 200g</li>
+                <li>奶油 80g</li>
+                <li>抹茶粉 10g</li>
+                <li>雞蛋 2 顆</li>
+            </ul>
+            <h3>詳細步驟</h3>
+            <ul>
+                <li>1. 隔水加熱融化白巧克力與奶油。</li>
+                <li>2. 稍涼後加入抹茶粉與蛋液拌勻。</li>
+                <li>3. 倒入模具，烘烤 25 分鐘。</li>
+                <li>4. 放涼後切塊，抹茶味更濃郁。</li>
+            </ul>
+        </div>
+        <p style="color:var(--color-matcha-mid); text-align: center;">點擊展開詳細食譜...</p>
+    </div>
+</section>
+
+<section id="brands" class="section fade">
+    <h2 class="section-title">日本知名抹茶品牌推薦</h2>
+    <div class="grid-container">
+        <div class="base-card brand-card" data-type="brand">
+            <h3>辻利茶舗 TSUJIRI</h3>
+            <p>日本百年抹茶老舖，品質純正濃厚。</p>
+            <span class="brand-hint" style="color:var(--color-matcha-mid); font-weight:600;">點擊查看品牌故事</span>
+            <div class="hidden-detail" style="display:none;">
+                <p><strong>創立年份：</strong> 1860年</p>
+                <p><strong>發源地：</strong> 京都宇治</p>
+                <p><strong>特色介紹：</strong><br>
+                辻利茶舗由辻利右衛門創立，他改良了玉露的製法，將茶箱內部貼上錫紙，成功讓宇治茶能夠長途運送而不變質。辻利的抹茶以「苦中帶甘」的完美平衡聞名，是日本最家喻戶曉的抹茶品牌之一。現今不僅有高品質茶葉，其抹茶甜點店在世界各地也極具人氣。</p>
+                <p><strong>推薦商品：</strong> 濃茶、特選抹茶粉、抹茶霜淇淋。</p>
+            </div>
+        </div>
+
+        <div class="base-card brand-card" data-type="brand">
+            <h3>一保堂 Ippodo</h3>
+            <p>京都高級茶葉老舖，風味細緻優雅。</p>
+            <span class="brand-hint" style="color:var(--color-matcha-mid); font-weight:600;">點擊查看品牌故事</span>
+            <div class="hidden-detail" style="display:none;">
+                 <p><strong>創立年份：</strong> 1717年</p>
+                <p><strong>發源地：</strong> 京都寺町通</p>
+                <p><strong>特色介紹：</strong><br>
+                一保堂茶舖是京都擁有三百年歷史的老店，深受茶道愛好者喜愛。堅持「味道與香氣」的傳統製茶工藝。他們的抹茶口感較為溫潤，澀味極低，非常適合單獨飲用。店內不僅販售茶葉，更致力於推廣正統的日本茶文化。</p>
+                <p><strong>推薦商品：</strong> 抹茶「初昔」、焙茶、玉露。</p>
+            </div>
+        </div>
+        <div class="base-card brand-card" data-type="brand">
+            <h3>中村藤吉</h3>
+            <p>宇治最具代表性的抹茶甜點名店。</p>
+            <span class="brand-hint" style="color:var(--color-matcha-mid); font-weight:600;">點擊查看品牌故事</span>
+            <div class="hidden-detail" style="display:none;">
+                <p><strong>創立年份：</strong> 1854年</p>
+                <p><strong>發源地：</strong> 京都宇治</p>
+                <p><strong>特色介紹：</strong><br>
+                中村藤吉本店曾是皇室御用的茶師，現在則是以傳統結合現代的甜點聞名。位於宇治的本店總是排滿了長長的人龍，最著名的就是用竹筒裝盛的抹茶凍甜點。他們致力於將抹茶融入現代生活，讓年輕人也能輕鬆享受抹茶的美味。</p>
+                <p><strong>推薦商品：</strong> 生茶果凍（抹茶口味）、抹茶費南雪。</p>
+            </div>
+        </div>
+
+        <div class="base-card brand-card" data-type="brand">
+            <h3>丸久小山園</h3>
+            <p>高端抹茶名廠，茶香濃厚回甘。</p>
+            <span class="brand-hint" style="color:var(--color-matcha-mid); font-weight:600;">點擊查看品牌故事</span>
+            <div class="hidden-detail" style="display:none;">
+                 <p><strong>創立年份：</strong> 元祿年間 (1688-1704)</p>
+                <p><strong>發源地：</strong> 京都宇治小倉</p>
+                <p><strong>特色介紹：</strong><br>
+                在抹茶界擁有崇高地位的「丸久小山園」，屢次在全國茶品評會中獲得第一名。許多日本高級甜點店、旅館皆指定使用他們的抹茶粉。其風味層次豐富，香氣高雅，是追求極致抹茶風味者的首選品牌。</p>
+                <p><strong>推薦商品：</strong> 五十鈴、和光（適合烘焙與飲用）。</p>
+            </div>
+        </div>
+
+        <div class="base-card brand-card" data-type="brand">
+            <h3>茶寮都路里</h3>
+            <p>以抹茶聖代與甜點聞名全球。</p>
+            <span class="brand-hint" style="color:var(--color-matcha-mid); font-weight:600;">點擊查看品牌故事</span>
+            <div class="hidden-detail" style="display:none;">
+                 <p><strong>創立年份：</strong> 1978年</p>
+                <p><strong>發源地：</strong> 京都祇園</p>
+                <p><strong>特色介紹：</strong><br>
+                茶寮都路里其實是「祇園辻利」開設的甜點茶房。原本是為了讓年輕人更能體驗茶的美味而設立，結果其豪華的「特選都路里抹茶聖代」一炮而紅。每到這家店，必點的就是層層堆疊、配料豐富的抹茶聖代。</p>
+                <p><strong>推薦商品：</strong> 特選都路里聖代、抹茶蕨餅。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<footer id="footer">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap: 20px;">
+        <div>
+            <h3 style="color:var(--color-matcha-dark);">聯絡資訊</h3>
+            <p>Email：milktea46161839@gmail.com</p>
+            <p>IG：@Lo._.nay_</p>
+        </div>
+        <div class="footer-right">
+            <p>&copy; 2025 Matcha Sweets. All rights reserved.</p>
+            <p>致力於為抹茶愛好者提供優質的資訊平台。</p>
+        </div>
+    </div>
+</footer>
+
+<div id="topBtn">↑</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        
+        /* 1. 淡入動畫 */
+        const fades = document.querySelectorAll(".fade");
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("show"); });
+        }, { threshold: 0.1 });
+        fades.forEach(f => observer.observe(f));
+
+        /* 2. 回到頂部 */
+        const topBtn = document.getElementById("topBtn");
+        window.addEventListener("scroll", () => {
+            topBtn.style.display = window.scrollY > 300 ? "flex" : "none";
+        });
+        topBtn.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+        /* 3. Hero 輪播 */
+        const slides = document.querySelectorAll(".slider .slide");
+        let currentIndex = 0;
+        setInterval(() => {
+            slides[currentIndex].classList.remove("active");
+            currentIndex = (currentIndex + 1) % slides.length;
+            slides[currentIndex].classList.add("active");
+        }, 3500);
+        document.getElementById("heroSlider").classList.add("show-text");
+
+        /* 4. 通用彈窗邏輯 */
+        const modal = document.getElementById("infoModal");
+        const modalBody = document.getElementById("modalBody");
+        const cards = document.querySelectorAll("[data-type]");
+
+        cards.forEach(card => {
+            card.onclick = () => {
+                const type = card.getAttribute("data-type");
+                const title = card.querySelector("h2, h3").innerText;
+                const detail = card.querySelector(".hidden-detail").innerHTML;
+                
+                let content = `<h2 style="color:var(--color-matcha-dark); border-bottom:2px solid var(--color-bg-secondary); padding-bottom:10px;">${title}</h2>`;
+                
+                if(type === 'recipe') {
+                    const imgSrc = card.querySelector("img").src;
+                    content = `<img src="${imgSrc}" style="width:100%; max-height:300px; object-fit:cover; border-radius:15px; margin-bottom:20px;">` + content;
+                }
+                
+                modalBody.innerHTML = content + `<div style="line-height:1.8; margin-top:20px;">${detail}</div>`;
+                modal.classList.add("active");
+                document.body.style.overflow = "hidden";
+            };
+        });
+
+        /* 5. 關閉彈窗 */
+        const closeBtn = document.querySelector(".close-modal");
+        const closeModal = () => {
+            modal.classList.remove("active");
+            document.body.style.overflow = "auto";
+        };
+        closeBtn.onclick = closeModal;
+        modal.onclick = (e) => { if(e.target === modal) closeModal(); };
+
+        /* 6. 新增：漢堡選單控制 */
+        const burger = document.getElementById("burger");
+        const nav = document.querySelector(".nav-links");
+        const navLinks = document.querySelectorAll(".nav-links li");
+
+        burger.onclick = () => {
+            nav.classList.toggle("nav-active");
+            burger.classList.toggle("toggle");
+        };
+
+        // 點擊選單連結後自動關閉選單
+        navLinks.forEach(link => {
+            link.onclick = () => {
+                nav.classList.remove("nav-active");
+                burger.classList.remove("toggle");
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
